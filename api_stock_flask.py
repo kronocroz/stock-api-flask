@@ -32,10 +32,18 @@ def buscar_nombre():
     if not nombre:
         return jsonify({"error": "Parámetro 'nombre' es obligatorio"}), 400
 
-    # Dividir las palabras y crear cláusulas LIKE individuales
+    # Preprocesar búsqueda: convertir a minúscula y separar palabras
     palabras = nombre.strip().lower().split()
-    condiciones = " AND ".join([f"LOWER(`Nombre producto`) LIKE ?" for _ in palabras])
-    parametros = [f"%{p}%" for p in palabras]
+
+    # Lista de palabras a ignorar (puedes ampliarla)
+    ignorar = {"ref", "codigo", "cod", "art", "-", "_", ":"}
+
+    # Generar condiciones SQL para cada palabra relevante
+    condiciones = " AND ".join([f"LOWER(`Nombre producto`) LIKE ?" for p in palabras if p not in ignorar])
+    parametros = [f"%{p}%" for p in palabras if p not in ignorar]
+
+    if not condiciones:
+        return jsonify({"error": "No se ingresaron palabras relevantes"}), 400
 
     query = f"""
         SELECT "Referencia", "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción
