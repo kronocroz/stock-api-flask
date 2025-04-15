@@ -26,5 +26,29 @@ def get_stock():
     else:
         return jsonify({"error": "Referencia no encontrada"}), 404
 
+@app.route('/buscar_nombre', methods=['GET'])
+def buscar_nombre():
+    nombre = request.args.get('nombre')
+    if not nombre:
+        return jsonify({"error": "Parámetro 'nombre' es obligatorio"}), 400
+
+    conn = sqlite3.connect('stock.db')
+    cursor = conn.cursor()
+    query = """
+        SELECT "Referencia", "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción
+        FROM inventario
+        WHERE LOWER("Nombre producto") LIKE LOWER(?)
+        LIMIT 10
+    """
+    cursor.execute(query, ('%' + nombre + '%',))
+    resultados = cursor.fetchall()
+    conn.close()
+
+    if resultados:
+        keys = ["Referencia", "Nombre producto", "Medellin", "Bogota", "Cali", "Barranquilla", "Cartagena", "Producción"]
+        return jsonify([dict(zip(keys, row)) for row in resultados])
+    else:
+        return jsonify({"mensaje": "No se encontraron coincidencias"}), 404
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000) 
+    app.run(host='0.0.0.0', port=5000)
