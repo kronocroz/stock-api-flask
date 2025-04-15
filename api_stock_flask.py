@@ -68,8 +68,21 @@ def buscar_nombre():
         if all(palabra in palabras_producto for palabra in palabras):
             resultados_filtrados.append(fila)
 
-    if resultados_filtrados:
-        keys = ["Referencia", "Nombre producto", "Medellin", "Bogota", "Cali", "Barranquilla", "Cartagena", "Producción"]
-        return jsonify([dict(zip(keys, row)) for row in resultados_filtrados])
+   if resultados_filtrados:
+        respuesta = []
+        for fila in resultados_filtrados:
+            referencia = fila[0]
+            nombre = fila[1]
+            stock_data = dict(zip(
+                ["Medellin", "Bogota", "Cali", "Barranquilla", "Cartagena", "Producción"],
+                fila[2:]
+            ))
+            respuesta.append({
+                "Resultado": f"{referencia} - {nombre}",
+                "Referencia": referencia,
+                "Nombre producto": nombre,
+                **stock_data
+            })
+        return jsonify(respuesta)
     else:
         return jsonify({"mensaje": "No se encontraron coincidencias exactas"}), 404
