@@ -32,34 +32,44 @@ def buscar_nombre():
     if not nombre:
         return jsonify({"error": "Parámetro 'nombre' es obligatorio"}), 400
 
-    # Preprocesar búsqueda: convertir a minúscula y separar palabras
     palabras = nombre.strip().lower().split()
 
-    # Lista de palabras a ignorar (puedes ampliarla)
-    ignorar = {"ref", "codigo", "cod", "art", "-", "_", ":"}
+    # Palabras que ignoramos
+    ignorar = {"ref", "codigo", "cod", "art"}
 
-    # Generar condiciones SQL para cada palabra relevante
-    condiciones = " AND ".join([f"LOWER(`Nombre producto`) LIKE ?" for p in palabras if p not in ignorar])
-    parametros = [f"%{p}%" for p in palabras if p not in ignorar]
+    # Filtro de palabras útiles
+    palabras = [p for p in palabras if p not in ignorar]
 
-    if not condiciones:
+    if not palabras:
         return jsonify({"error": "No se ingresaron palabras relevantes"}), 400
+
+    # Traer posibles coincidencias con LIKE amplio primero
+    condiciones = " AND ".join([f"LOWER(`Nombre producto`) LIKE ?" for _ in palabras])
+    parametros = [f"%{p}%" for p in palabras]
 
     query = f"""
         SELECT "Referencia", "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción
         FROM inventario
         WHERE {condiciones}
-        LIMIT 10
+        LIMIT 20
     """
 
     conn = sqlite3.connect('stock.db')
     cursor = conn.cursor()
     cursor.execute(query, parametros)
-    resultados = cursor.fetchall()
+    resultados_crudos = cursor.fetchall()
     conn.close()
 
-    if resultados:
+    # Precisión: solo mantener filas donde cada palabra está como palabra individual
+    resultados_filtrados = []
+    for fila in resultados_crudos:
+        texto = fila[1].lower().replace("-", " ")  # nombre producto
+        palabras_producto = set(texto.split())
+        if all(palabra in palabras_producto for palabra in palabras):
+            resultados_filtrados.append(fila)
+
+    if resultados_filtrados:
         keys = ["Referencia", "Nombre producto", "Medellin", "Bogota", "Cali", "Barranquilla", "Cartagena", "Producción"]
-        return jsonify([dict(zip(keys, row)) for row in resultados])
+        return jsonify([dict(zip(keys, row)) for row in resultados_filtrados])
     else:
-        return jsonify({"mensaje": "No se encontraron coincidencias"}), 404
+        return jsonify({"mensaje": "No se encontraron coincidencias exactas"}), 404
