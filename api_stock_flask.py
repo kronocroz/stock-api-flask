@@ -32,15 +32,21 @@ def buscar_nombre():
     if not nombre:
         return jsonify({"error": "Parámetro 'nombre' es obligatorio"}), 400
 
-    conn = sqlite3.connect('stock.db')
-    cursor = conn.cursor()
-    query = """
+    # Dividir las palabras y crear cláusulas LIKE individuales
+    palabras = nombre.strip().lower().split()
+    condiciones = " AND ".join([f"LOWER(`Nombre producto`) LIKE ?" for _ in palabras])
+    parametros = [f"%{p}%" for p in palabras]
+
+    query = f"""
         SELECT "Referencia", "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción
         FROM inventario
-        WHERE LOWER("Nombre producto") LIKE LOWER(?)
+        WHERE {condiciones}
         LIMIT 10
     """
-    cursor.execute(query, ('%' + nombre + '%',))
+
+    conn = sqlite3.connect('stock.db')
+    cursor = conn.cursor()
+    cursor.execute(query, parametros)
     resultados = cursor.fetchall()
     conn.close()
 
@@ -49,6 +55,3 @@ def buscar_nombre():
         return jsonify([dict(zip(keys, row)) for row in resultados])
     else:
         return jsonify({"mensaje": "No se encontraron coincidencias"}), 404
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
