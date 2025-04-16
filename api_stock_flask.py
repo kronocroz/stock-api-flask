@@ -9,11 +9,17 @@ def get_stock():
     if not referencia:
         return jsonify({"error": "Parámetro 'ref' es obligatorio"}), 400
 
+    referencia = str(referencia).strip()  # Aseguramos que sea texto
+
     conn = sqlite3.connect('stock.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    query = "SELECT * FROM inventario WHERE Referencia = ?"
+    query = """
+        SELECT *
+        FROM inventario
+        WHERE CAST(Referencia AS TEXT) = ?
+    """
     cursor.execute(query, (referencia,))
     row = cursor.fetchone()
     conn.close()
@@ -76,7 +82,7 @@ def buscar_nombre():
         texto = row["Nombre producto"].lower().replace("-", " ")
         palabras_producto = set(texto.split())
         if all(p in palabras_producto for p in palabras):
-            referencia = row["Referencia"]
+            referencia = str(row["Referencia"]).strip()
             nombre = row["Nombre producto"]
             precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
             des_decimal = row["Desc"] if row["Desc"] is not None else 0
