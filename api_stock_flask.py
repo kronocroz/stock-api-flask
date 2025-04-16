@@ -66,7 +66,7 @@ def buscar_nombre():
     if not palabras:
         return jsonify({"error": "No se ingresaron palabras relevantes"}), 400
 
-    condiciones = " AND ".join([f"LOWER(`Nombre producto`) LIKE ?" for _ in palabras])
+    condiciones = " AND ".join(["LOWER(`Nombre producto`) LIKE ?" for _ in palabras])
     parametros = [f"%{p}%" for p in palabras]
 
     conn = sqlite3.connect('stock.db')
@@ -79,9 +79,8 @@ def buscar_nombre():
 
     resultados = []
     for row in filas:
-        texto = row["Nombre producto"].lower().replace("-", " ")
-        palabras_producto = set(texto.split())
-        if all(p in palabras_producto for p in palabras):
+        nombre_normalizado = row["Nombre producto"].lower().replace("-", " ").replace("/", " ")
+        if all(p in nombre_normalizado for p in palabras):
             referencia = str(row["Referencia"]).strip()
             nombre = row["Nombre producto"]
             precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
@@ -112,6 +111,7 @@ def buscar_nombre():
         return jsonify(resultados)
     else:
         return jsonify({"mensaje": "No se encontraron coincidencias exactas"}), 404
+
 
 
 if __name__ == '__main__':
