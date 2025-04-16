@@ -73,7 +73,7 @@ def buscar_nombre():
     
     # Condiciones para buscar en el nombre del producto
     condiciones_nombre = [
-        "REPLACE(REPLACE(LOWER(`Nombre producto`), '-', ''), '/', '') LIKE ?"
+        "REPLACE(REPLACE(LOWER(`Nombre producto`), ''), '/', '') LIKE ?"
         for _ in palabras
     ]
     
