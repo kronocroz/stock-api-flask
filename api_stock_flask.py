@@ -12,7 +12,8 @@ def get_stock():
     conn = sqlite3.connect('stock.db')
     cursor = conn.cursor()
     query = """
-        SELECT "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción
+        SELECT "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción,
+               "Precio de Lista", Des
         FROM inventario
         WHERE Referencia = ?
     """
@@ -21,10 +22,31 @@ def get_stock():
     conn.close()
 
     if result:
+        nombre = result[0]
+        precio_lista = result[7] if result[7] is not None else 0
+        des_decimal = result[8] if result[8] is not None else 0
+        des_porcentaje = round(float(des_decimal) * 100)
+        precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
+
+        resultado_texto = (
+            f"{referencia} - {nombre}. "
+            f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
+        )
+
         keys = ["Nombre producto", "Medellin", "Bogota", "Cali", "Barranquilla", "Cartagena", "Producción"]
-        return jsonify(dict(zip(keys, result)))
+        stock_data = dict(zip(keys, result[:7]))
+
+        return jsonify({
+            "Resultado": resultado_texto,
+            "Referencia": referencia,
+            "Nombre producto": nombre,
+            **stock_data,
+            "Precio de Lista": precio_formateado,
+            "Descuento de vendedor": f"{des_porcentaje}%"
+        })
     else:
         return jsonify({"error": "Referencia no encontrada"}), 404
+
 
 @app.route('/buscar_nombre', methods=['GET'])
 def buscar_nombre():
@@ -33,22 +55,18 @@ def buscar_nombre():
         return jsonify({"error": "Parámetro 'nombre' es obligatorio"}), 400
 
     palabras = nombre.strip().lower().split()
-
-    # Palabras que ignoramos
     ignorar = {"ref", "codigo", "cod", "art"}
-
-    # Filtro de palabras útiles
     palabras = [p for p in palabras if p not in ignorar]
 
     if not palabras:
         return jsonify({"error": "No se ingresaron palabras relevantes"}), 400
 
-    # Traer posibles coincidencias con LIKE amplio primero
     condiciones = " AND ".join([f"LOWER(`Nombre producto`) LIKE ?" for _ in palabras])
     parametros = [f"%{p}%" for p in palabras]
 
     query = f"""
-        SELECT "Referencia", "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción
+        SELECT "Referencia", "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción,
+               "Precio de Lista", Des
         FROM inventario
         WHERE {condiciones}
         LIMIT 20
@@ -60,29 +78,46 @@ def buscar_nombre():
     resultados_crudos = cursor.fetchall()
     conn.close()
 
-    # Precisión: solo mantener filas donde cada palabra está como palabra individual
     resultados_filtrados = []
     for fila in resultados_crudos:
-        texto = fila[1].lower().replace("-", " ")  # nombre producto
+        texto = fila[1].lower().replace("-", " ")
         palabras_producto = set(texto.split())
         if all(palabra in palabras_producto for palabra in palabras):
             resultados_filtrados.append(fila)
 
-   if resultados_filtrados:
+    if resultados_filtrados:
         respuesta = []
         for fila in resultados_filtrados:
             referencia = fila[0]
             nombre = fila[1]
+            precio_lista = fila[8] if fila[8] is not None else 0
+            des_decimal = fila[9] if fila[9] is not None else 0
+            des_porcentaje = round(float(des_decimal) * 100)
+            precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
+
+            resultado_texto = (
+                f"{referencia} - {nombre}. "
+                f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
+            )
+
             stock_data = dict(zip(
                 ["Medellin", "Bogota", "Cali", "Barranquilla", "Cartagena", "Producción"],
-                fila[2:]
+                fila[2:8]
             ))
+
             respuesta.append({
-                "Resultado": f"{referencia} - {nombre}",
+                "Resultado": resultado_texto,
                 "Referencia": referencia,
                 "Nombre producto": nombre,
-                **stock_data
+                **stock_data,
+                "Precio de Lista": precio_formateado,
+                "Descuento de vendedor": f"{des_porcentaje}%"
             })
+
         return jsonify(respuesta)
     else:
         return jsonify({"mensaje": "No se encontraron coincidencias exactas"}), 404
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
