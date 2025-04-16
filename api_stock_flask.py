@@ -13,11 +13,7 @@ def get_stock():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    query = """
-        SELECT *
-        FROM inventario
-        WHERE Referencia = ?
-    """
+    query = "SELECT * FROM inventario WHERE Referencia = ?"
     cursor.execute(query, (referencia,))
     row = cursor.fetchone()
     conn.close()
@@ -70,12 +66,7 @@ def buscar_nombre():
     conn = sqlite3.connect('stock.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    query = f"""
-        SELECT *
-        FROM inventario
-        WHERE {condiciones}
-        LIMIT 20
-    """
+    query = f"SELECT * FROM inventario WHERE {condiciones} LIMIT 20"
     cursor.execute(query, parametros)
     filas = cursor.fetchall()
     conn.close()
@@ -119,4 +110,3 @@ def buscar_nombre():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-
