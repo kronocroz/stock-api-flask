@@ -53,6 +53,7 @@ def get_stock():
         return jsonify({"error": "Referencia no encontrada"}), 404
 
 
+
 @app.route('/buscar_nombre', methods=['GET'])
 def buscar_nombre():
     nombre = request.args.get('nombre')
@@ -66,8 +67,11 @@ def buscar_nombre():
     if not palabras:
         return jsonify({"error": "No se ingresaron palabras relevantes"}), 400
 
-    condiciones = " AND ".join(["LOWER(`Nombre producto`) LIKE ?" for _ in palabras])
-    parametros = [f"%{p}%" for p in palabras]
+    condiciones = " AND ".join([
+        "REPLACE(REPLACE(LOWER(`Nombre producto`), '-', ''), '/', '') LIKE ?"
+        for _ in palabras
+    ])
+    parametros = [f"%{p.replace('-', '').replace('/', '')}%" for p in palabras]
 
     conn = sqlite3.connect('stock.db')
     conn.row_factory = sqlite3.Row
