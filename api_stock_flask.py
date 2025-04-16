@@ -13,7 +13,7 @@ def get_stock():
     cursor = conn.cursor()
     query = """
         SELECT "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción,
-               "Precio de Lista", Des
+               "Precio de lista", Desc
         FROM inventario
         WHERE Referencia = ?
     """
