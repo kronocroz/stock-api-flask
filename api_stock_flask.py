@@ -109,3 +109,4 @@ def buscar_nombre():
         return jsonify(resultados)
     else:
         return jsonify({"mensaje": "No se encontraron coincidencias"}), 404
+
