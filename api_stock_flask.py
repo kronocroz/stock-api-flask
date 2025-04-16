@@ -79,40 +79,33 @@ def buscar_nombre():
 
     resultados = []
     for row in filas:
-        nombre_normalizado = row["Nombre producto"].lower().replace("-", " ").replace("/", " ")
-        if all(p in nombre_normalizado for p in palabras):
-            referencia = str(row["Referencia"]).strip()
-            nombre = row["Nombre producto"]
-            precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
-            des_decimal = row["Desc"] if row["Desc"] is not None else 0
-            des_porcentaje = round(float(des_decimal) * 100)
-            precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
+        referencia = str(row["Referencia"]).strip()
+        nombre = row["Nombre producto"]
+        precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
+        des_decimal = row["Desc"] if row["Desc"] is not None else 0
+        des_porcentaje = round(float(des_decimal) * 100)
+        precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
 
-            resultado_texto = (
-                f"{referencia} - {nombre}. "
-                f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
-            )
+        resultado_texto = (
+            f"{referencia} - {nombre}. "
+            f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
+        )
 
-            resultados.append({
-                "Resultado": resultado_texto,
-                "Referencia": referencia,
-                "Nombre producto": nombre,
-                "Medellin": row["Medellin"],
-                "Bogota": row["Bogota"],
-                "Cali": row["Cali"],
-                "Barranquilla": row["Barranquilla"],
-                "Cartagena": row["Cartagena"],
-                "Producción": row["Producción"],
-                "Precio lista": precio_formateado,
-                "Descuento de vendedor": f"{des_porcentaje}%"
-            })
+        resultados.append({
+            "Resultado": resultado_texto,
+            "Referencia": referencia,
+            "Nombre producto": nombre,
+            "Medellin": row["Medellin"],
+            "Bogota": row["Bogota"],
+            "Cali": row["Cali"],
+            "Barranquilla": row["Barranquilla"],
+            "Cartagena": row["Cartagena"],
+            "Producción": row["Producción"],
+            "Precio lista": precio_formateado,
+            "Descuento de vendedor": f"{des_porcentaje}%"
+        })
 
     if resultados:
         return jsonify(resultados)
     else:
-        return jsonify({"mensaje": "No se encontraron coincidencias exactas"}), 404
-
-
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+        return jsonify({"mensaje": "No se encontraron coincidencias"}), 404
