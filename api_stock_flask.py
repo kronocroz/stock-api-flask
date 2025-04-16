@@ -10,21 +10,22 @@ def get_stock():
         return jsonify({"error": "Parámetro 'ref' es obligatorio"}), 400
 
     conn = sqlite3.connect('stock.db')
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
+
     query = """
-        SELECT "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción,
-               "Precio lista", Desc
+        SELECT *
         FROM inventario
         WHERE Referencia = ?
     """
     cursor.execute(query, (referencia,))
-    result = cursor.fetchone()
+    row = cursor.fetchone()
     conn.close()
 
-    if result:
-        nombre = result[0]
-        precio_lista = result[7] if result[7] is not None else 0
-        des_decimal = result[8] if result[8] is not None else 0
+    if row:
+        nombre = row["Nombre producto"]
+        precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
+        des_decimal = row["Desc"] if row["Desc"] is not None else 0
         des_porcentaje = round(float(des_decimal) * 100)
         precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
 
@@ -33,14 +34,16 @@ def get_stock():
             f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
         )
 
-        keys = ["Nombre producto", "Medellin", "Bogota", "Cali", "Barranquilla", "Cartagena", "Producción"]
-        stock_data = dict(zip(keys, result[:7]))
-
         return jsonify({
             "Resultado": resultado_texto,
-            "Referencia": referencia,
+            "Referencia": row["Referencia"],
             "Nombre producto": nombre,
-            **stock_data,
+            "Medellin": row["Medellin"],
+            "Bogota": row["Bogota"],
+            "Cali": row["Cali"],
+            "Barranquilla": row["Barranquilla"],
+            "Cartagena": row["Cartagena"],
+            "Producción": row["Producción"],
             "Precio lista": precio_formateado,
             "Descuento de vendedor": f"{des_porcentaje}%"
         })
@@ -64,34 +67,28 @@ def buscar_nombre():
     condiciones = " AND ".join([f"LOWER(`Nombre producto`) LIKE ?" for _ in palabras])
     parametros = [f"%{p}%" for p in palabras]
 
+    conn = sqlite3.connect('stock.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
     query = f"""
-        SELECT "Referencia", "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción,
-               "Precio lista", Desc
+        SELECT *
         FROM inventario
         WHERE {condiciones}
         LIMIT 20
     """
-
-    conn = sqlite3.connect('stock.db')
-    cursor = conn.cursor()
     cursor.execute(query, parametros)
-    resultados_crudos = cursor.fetchall()
+    filas = cursor.fetchall()
     conn.close()
 
-    resultados_filtrados = []
-    for fila in resultados_crudos:
-        texto = fila[1].lower().replace("-", " ")
+    resultados = []
+    for row in filas:
+        texto = row["Nombre producto"].lower().replace("-", " ")
         palabras_producto = set(texto.split())
-        if all(palabra in palabras_producto for palabra in palabras):
-            resultados_filtrados.append(fila)
-
-    if resultados_filtrados:
-        respuesta = []
-        for fila in resultados_filtrados:
-            referencia = fila[0]
-            nombre = fila[1]
-            precio_lista = fila[8] if fila[8] is not None else 0
-            des_decimal = fila[9] if fila[9] is not None else 0
+        if all(p in palabras_producto for p in palabras):
+            referencia = row["Referencia"]
+            nombre = row["Nombre producto"]
+            precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
+            des_decimal = row["Desc"] if row["Desc"] is not None else 0
             des_porcentaje = round(float(des_decimal) * 100)
             precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
 
@@ -100,24 +97,26 @@ def buscar_nombre():
                 f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
             )
 
-            stock_data = dict(zip(
-                ["Medellin", "Bogota", "Cali", "Barranquilla", "Cartagena", "Producción"],
-                fila[2:8]
-            ))
-
-            respuesta.append({
+            resultados.append({
                 "Resultado": resultado_texto,
                 "Referencia": referencia,
                 "Nombre producto": nombre,
-                **stock_data,
+                "Medellin": row["Medellin"],
+                "Bogota": row["Bogota"],
+                "Cali": row["Cali"],
+                "Barranquilla": row["Barranquilla"],
+                "Cartagena": row["Cartagena"],
+                "Producción": row["Producción"],
                 "Precio lista": precio_formateado,
                 "Descuento de vendedor": f"{des_porcentaje}%"
             })
 
-        return jsonify(respuesta)
+    if resultados:
+        return jsonify(resultados)
     else:
         return jsonify({"mensaje": "No se encontraron coincidencias exactas"}), 404
 
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
