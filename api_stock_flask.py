@@ -13,7 +13,7 @@ def get_stock():
     cursor = conn.cursor()
     query = """
         SELECT "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción,
-               "Precio de lista", Desc
+               "Precio lista", Desc
         FROM inventario
         WHERE Referencia = ?
     """
@@ -41,7 +41,7 @@ def get_stock():
             "Referencia": referencia,
             "Nombre producto": nombre,
             **stock_data,
-            "Precio de Lista": precio_formateado,
+            "Precio lista": precio_formateado,
             "Descuento de vendedor": f"{des_porcentaje}%"
         })
     else:
@@ -66,7 +66,7 @@ def buscar_nombre():
 
     query = f"""
         SELECT "Referencia", "Nombre producto", Medellin, Bogota, Cali, Barranquilla, Cartagena, Producción,
-               "Precio de Lista", Des
+               "Precio lista", Desc
         FROM inventario
         WHERE {condiciones}
         LIMIT 20
@@ -110,7 +110,7 @@ def buscar_nombre():
                 "Referencia": referencia,
                 "Nombre producto": nombre,
                 **stock_data,
-                "Precio de Lista": precio_formateado,
+                "Precio lista": precio_formateado,
                 "Descuento de vendedor": f"{des_porcentaje}%"
             })
 
