@@ -26,11 +26,17 @@ def get_stock():
     conn.close()
 
     if row:
+        # 🔍 Ver claves disponibles para depurar posibles errores
+        print("Claves disponibles:", list(row.keys()))
+
         nombre = row["Nombre producto"]
         precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
         des_decimal = row["Desc"] if row["Desc"] is not None else 0
         des_porcentaje = round(float(des_decimal) * 100)
         precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
+
+        # Acceso seguro a campo con tilde
+        produccion = row.get("Producción", 0)
 
         resultado_texto = (
             f"{referencia} - {nombre}\n\n"
@@ -52,13 +58,12 @@ def get_stock():
             "Cali": row["Cali"],
             "Barranquilla": row["Barranquilla"],
             "Cartagena": row["Cartagena"],
-            "Producción": row["Producción"],
+            "Producción": produccion,
             "Precio lista": precio_formateado,
             "Descuento de vendedor": f"{des_porcentaje}%"
         })
     else:
         return jsonify({"error": "Referencia no encontrada"}), 404
-
 
 @app.route('/buscar_nombre', methods=['GET'])
 def buscar_nombre():
