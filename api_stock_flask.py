@@ -142,9 +142,9 @@ def buscar_nombre():
             f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
         )
         resultados.append({
-            "Resultado": resultado_texto,
+            "Resultado": f"{referencia} - {nombre_producto}. El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%.",
             "Referencia": referencia,
-            "Nombre producto": nombre,
+            "Nombre producto": nombre_producto,
             "Medellin": row["Medellin"],
             "Bogota": row["Bogota"],
             "Cali": row["Cali"],
@@ -152,8 +152,9 @@ def buscar_nombre():
             "Cartagena": row["Cartagena"],
             "Producción": row["Producción"],
             "Precio lista": precio_formateado,
-            "Descuento de vendedor": f"{des_porcentaje}%"
+            "Descuento de vendedor": f"{descuento}%"
         })
+
     
     if resultados:
         return jsonify(resultados)
