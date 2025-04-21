@@ -33,14 +33,14 @@ def get_stock():
         precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
 
         resultado_texto = (
-            f"{referencia} - {nombre_producto}\n\n"
+            f"{referencia} - {nombre}\n\n"
             f"Saldos:\n\n"
             f"Medellín {row['Medellin']},\n"
             f"Bogotá {row['Bogota']},\n"
             f"Cali {row['Cali']},\n"
             f"Barranquilla {row['Barranquilla']},\n"
             f"Cartagena {row['Cartagena']}.\n\n"
-            f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
+            f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
         )
         
         return jsonify({
