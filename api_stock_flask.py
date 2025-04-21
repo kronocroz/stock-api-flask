@@ -26,7 +26,7 @@ def get_stock():
     conn.close()
 
     if row:
-        # 🔍 Ver claves disponibles para depurar posibles errores
+        # 🔍 Depuración: ver las claves que devuelve SQLite
         print("Claves disponibles:", list(row.keys()))
 
         nombre = row["Nombre producto"]
@@ -35,8 +35,12 @@ def get_stock():
         des_porcentaje = round(float(des_decimal) * 100)
         precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
 
-        # Acceso seguro a campo con tilde
-        produccion = row.get("Producción", 0)
+        # Manejo seguro del campo con tilde
+        try:
+            produccion = row["Producción"]
+        except Exception as e:
+            print("Error al acceder a 'Producción':", e)
+            produccion = 0
 
         resultado_texto = (
             f"{referencia} - {nombre}\n\n"
@@ -64,6 +68,7 @@ def get_stock():
         })
     else:
         return jsonify({"error": "Referencia no encontrada"}), 404
+
 
 @app.route('/buscar_nombre', methods=['GET'])
 def buscar_nombre():
