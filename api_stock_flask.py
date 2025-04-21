@@ -33,8 +33,14 @@ def get_stock():
         precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
 
         resultado_texto = (
-            f"{referencia} - {nombre_producto}. "
-            f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
+            f"{referencia} - {nombre_producto}\n\n"
+            f"Saldos:\n\n"
+            f"Medellín {row['Medellin']},\n"
+            f"Bogotá {row['Bogota']},\n"
+            f"Cali {row['Cali']},\n"
+            f"Barranquilla {row['Barranquilla']},\n"
+            f"Cartagena {row['Cartagena']}.\n\n"
+            f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
         )
         
         return jsonify({
@@ -113,10 +119,18 @@ def buscar_nombre():
         precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
         descuento = round(float(row["Desc"] or 0) * 100)
         precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
+        
         resultado_texto = (
-            f"{referencia} - {nombre_producto}. "
-            f"El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
+            f"{referencia} - {nombre_producto}\n\n"
+            f"Saldos:\n\n"
+            f"Medellín {row['Medellin']},\n"
+            f"Bogotá {row['Bogota']},\n"
+            f"Cali {row['Cali']},\n"
+            f"Barranquilla {row['Barranquilla']},\n"
+            f"Cartagena {row['Cartagena']}.\n\n"
+            f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
         )
+
         resultados.append({
             "Resultado": resultado_texto,
             "Referencia": referencia,
