@@ -52,7 +52,12 @@ def get_stock():
             f"Cartagena {row['Cartagena']}.\n\n"
             f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {des_porcentaje}%."
         )
-        
+
+        # Detectar si contiene "talla" para sugerir ver más
+        sugerencia_tallas = ""
+        if "talla" in nombre.lower():
+            sugerencia_tallas = "¿Deseas conocer el stock de las demás tallas similares?"
+
         return jsonify({
             "Resultado": resultado_texto,
             "Referencia": row["Referencia"],
@@ -64,7 +69,8 @@ def get_stock():
             "Cartagena": row["Cartagena"],
             "Producción": produccion,
             "Precio lista": precio_formateado,
-            "Descuento de vendedor": f"{des_porcentaje}%"
+            "Descuento de vendedor": f"{des_porcentaje}%",
+            "Sugerencia": sugerencia_tallas  # solo aparece si aplica
         })
     else:
         return jsonify({"error": "Referencia no encontrada"}), 404
@@ -160,8 +166,79 @@ def buscar_nombre():
     else:
         return jsonify({"mensaje": "No se encontraron coincidencias"}), 404
 
+@app.route('/tallas', methods=['GET'])
+def buscar_otras_tallas():
+    ref = request.args.get('ref')
+    if not ref:
+        return jsonify({"error": "Parámetro 'ref' es obligatorio"}), 400
+
+    conn = sqlite3.connect('stock.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM inventario WHERE CAST(Referencia AS TEXT) = ?", (ref,))
+    producto = cursor.fetchone()
+
+    if not producto:
+        return jsonify({"error": "Referencia no encontrada"}), 404
+
+    nombre_completo = producto["Nombre producto"]
+    if "talla" not in nombre_completo.lower():
+        return jsonify({"mensaje": "Esta referencia no contiene información de talla."}), 200
+
+    # Extraer base del nombre (antes de 'talla')
+    partes = nombre_completo.lower().split("talla")
+    nombre_base = partes[0].strip()
+
+    # Buscar productos que tengan el mismo nombre base y contengan "talla"
+    query = """
+        SELECT *
+        FROM inventario
+        WHERE LOWER(`Nombre producto`) LIKE ?
+        ORDER BY `Nombre producto` ASC
+    """
+    cursor.execute(query, (f"{nombre_base}%talla%",))
+    filas = cursor.fetchall()
+    conn.close()
+
+    resultados = []
+    for row in filas:
+        referencia = str(row["Referencia"]).strip()
+        nombre_producto = row["Nombre producto"]
+        precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
+        descuento = round(float(row["Desc"] or 0) * 100)
+        precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
+
+        resultado_texto = (
+            f"{referencia} - {nombre_producto}\n\n"
+            f"Saldos:\n\n"
+            f"Medellín {row['Medellin']},\n"
+            f"Bogotá {row['Bogota']},\n"
+            f"Cali {row['Cali']},\n"
+            f"Barranquilla {row['Barranquilla']},\n"
+            f"Cartagena {row['Cartagena']}.\n\n"
+            f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
+        )
+
+        resultados.append({
+            "Resultado": resultado_texto,
+            "Referencia": referencia,
+            "Nombre producto": nombre_producto,
+            "Medellin": row["Medellin"],
+            "Bogota": row["Bogota"],
+            "Cali": row["Cali"],
+            "Barranquilla": row["Barranquilla"],
+            "Cartagena": row["Cartagena"],
+            "Producción": row["Producción"],
+            "Precio lista": precio_formateado,
+            "Descuento de vendedor": f"{descuento}%"
+        })
+
+    return jsonify(resultados)
 
 # 🔁 Esto permite que Render detecte correctamente el puerto
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
+
