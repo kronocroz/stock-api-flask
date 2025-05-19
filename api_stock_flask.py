@@ -288,7 +288,7 @@ def analisis_inventario():
 
         resultados.append({
             "Ciudad": ciudad,
-            "Valor": valor,
+            "Stock": valor,
             "Min": min_val,
             "Max": max_val,
             "Estado": estado
