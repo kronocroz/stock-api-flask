@@ -272,6 +272,7 @@ def analisis_inventario():
     ]
 
     resultados = []
+    sugerencias = []
 
     for ciudad, min_col, max_col in ciudades:
         valor = row[ciudad] if row[ciudad] is not None else 0
@@ -285,6 +286,23 @@ def analisis_inventario():
             estado = "OK"
         else:
             estado = "Sobrestock"
+            diferencia = valor - max_val
+
+            # Buscar ciudades con Recompra
+            for destino, min_dest, max_dest in ciudades:
+                if destino != ciudad:
+                    dest_valor = row[destino] if row[destino] is not None else 0
+                    dest_min = row[min_dest] if row[min_dest] is not None else 0
+
+                    if dest_valor < dest_min:
+                        capacidad_faltante = dest_min - dest_valor
+                        trasladar = min(diferencia, capacidad_faltante)
+                        if trasladar > 0:
+                            sugerencias.append({
+                                "Desde": ciudad,
+                                "Hacia": destino,
+                                "Cantidad": trasladar
+                            })
 
         resultados.append({
             "Ciudad": ciudad,
@@ -297,7 +315,8 @@ def analisis_inventario():
     resultado_final = {
         "Referencia": referencia,
         "Nombre producto": nombre_producto,
-        "Analisis": resultados
+        "Analisis": resultados,
+        "Sugerencias de Traslado": sugerencias
     }
 
     return jsonify(resultado_final), 200
