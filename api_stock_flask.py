@@ -238,6 +238,10 @@ def buscar_otras_tallas():
 
 @app.route('/analisis_medellin', methods=['GET'])
 def analisis_medellin():
+    ref = request.args.get('ref')
+    if not ref:
+        return jsonify({"error": "Parámetro 'ref' es obligatorio"}), 400
+
     conn = sqlite3.connect('stock.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -245,39 +249,40 @@ def analisis_medellin():
     query = """
         SELECT Referencia, `Nombre producto`, Medellin, Min_Med, Max_Med
         FROM inventario
+        WHERE CAST(Referencia AS TEXT) = ?
     """
 
-    cursor.execute(query)
-    rows = cursor.fetchall()
+    cursor.execute(query, (ref,))
+    row = cursor.fetchone()
     conn.close()
 
-    resultados = []
+    if not row:
+        return jsonify({"error": "Referencia no encontrada"}), 404
 
-    for row in rows:
-        referencia = row['Referencia']
-        nombre_producto = row['Nombre producto']
-        medellin = row['Medellin'] if row['Medellin'] is not None else 0
-        min_med = row['Min_Med'] if row['Min_Med'] is not None else 0
-        max_med = row['Max_Med'] if row['Max_Med'] is not None else 0
+    referencia = row['Referencia']
+    nombre_producto = row['Nombre producto']
+    medellin = row['Medellin'] if row['Medellin'] is not None else 0
+    min_med = row['Min_Med'] if row['Min_Med'] is not None else 0
+    max_med = row['Max_Med'] if row['Max_Med'] is not None else 0
 
-        # Determinar el estado del inventario en Medellín
-        if medellin < min_med:
-            estado = "Recompra"
-        elif min_med <= medellin <= max_med:
-            estado = "OK"
-        else:
-            estado = "Sobrestock"
+    # Determinar el estado del inventario en Medellín
+    if medellin < min_med:
+        estado = "Recompra"
+    elif min_med <= medellin <= max_med:
+        estado = "OK"
+    else:
+        estado = "Sobrestock"
 
-        resultados.append({
-            "Referencia": referencia,
-            "Nombre producto": nombre_producto,
-            "Medellin": medellin,
-            "Min_Med": min_med,
-            "Max_Med": max_med,
-            "Estado": estado
-        })
+    resultado = {
+        "Referencia": referencia,
+        "Nombre producto": nombre_producto,
+        "Medellin": medellin,
+        "Min_Med": min_med,
+        "Max_Med": max_med,
+        "Estado": estado
+    }
 
-    return jsonify(resultados), 200
+    return jsonify(resultado), 200
 
 # 🔁 Esto permite que Render detecte correctamente el puerto
 if __name__ == "__main__":
