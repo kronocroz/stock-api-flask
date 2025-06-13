@@ -248,7 +248,11 @@ def analisis_inventario():
         cursor = conn.cursor()
 
         query = """
-            SELECT Referencia, "Nombre producto", Medellin, Min_Med, Max_Med, Bogota, Min_Bog, Max_Bog, Cali, Min_Cal, Max_Cal, Barranquilla, Min_Baq, Max_Baq, Cartagena, Min_Crt, Max_Crt
+            SELECT Referencia, "Nombre producto", Medellin, Min_Med, Max_Med,
+                   Bogota, Min_Bog, Max_Bog,
+                   Cali, Min_Cal, Max_Cal,
+                   Barranquilla, Min_Baq, Max_Baq,
+                   Cartagena, Min_Crt, Max_Crt
             FROM inventario
             WHERE CAST(Referencia AS TEXT) = ?
         """
@@ -274,7 +278,7 @@ def analisis_inventario():
         sugerencias = []
 
         for ciudad, min_col, max_col in ciudades:
-            valor = row[ciudad] if row[ciidad] is not None else 0
+            valor = row[ciudad] if row[ciudad] is not None else 0
             min_val = row[min_col] if row[min_col] is not None else 0
             max_val = row[max_col] if row[max_col] is not None else 0
 
@@ -316,6 +320,7 @@ def analisis_inventario():
     except Exception as e:
         print("❌ ERROR EN EL ENDPOINT /analisis_inventario:", str(e))
         return jsonify({"error": f"Error interno: {str(e)}"}), 500
+
 
 # 🔁 Esto permite que Render detecte correctamente el puerto
 if __name__ == "__main__":
