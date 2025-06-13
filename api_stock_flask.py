@@ -133,18 +133,18 @@ def buscar_nombre():
         for row in filas:
             referencia = str(row["Referencia"]).strip()
             nombre_producto = row["Nombre producto"]
-            precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
-            descuento = round(float(row["Desc"] or 0) * 100)
+            precio_lista = row["Precio lista"] if "Precio lista" in row.keys() else 0
+            descuento = round(float(row["Desc"] if "Desc" in row.keys() else 0) * 100)
             precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
 
             resultado_texto = (
                 f"{referencia} - {nombre_producto}\n\n"
                 f"Saldos:\n\n"
-                f"Medellín {row.get('Medellin', 0)},\n"
-                f"Bogotá {row.get('Bogota', 0)},\n"
-                f"Cali {row.get('Cali', 0)},\n"
-                f"Barranquilla {row.get('Barranquilla', 0)},\n"
-                f"Cartagena {row.get('Cartagena', 0)}.\n\n"
+                f"Medellín {row['Medellin'] if 'Medellin' in row.keys() else 0},\n"
+                f"Bogotá {row['Bogota'] if 'Bogota' in row.keys() else 0},\n"
+                f"Cali {row['Cali'] if 'Cali' in row.keys() else 0},\n"
+                f"Barranquilla {row['Barranquilla'] if 'Barranquilla' in row.keys() else 0},\n"
+                f"Cartagena {row['Cartagena'] if 'Cartagena' in row.keys() else 0}.\n\n"
                 f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
             )
 
@@ -152,12 +152,12 @@ def buscar_nombre():
                 "Resultado": resultado_texto,
                 "Referencia": referencia,
                 "Nombre producto": nombre_producto,
-                "Medellin": row.get("Medellin", 0),
-                "Bogota": row.get("Bogota", 0),
-                "Cali": row.get("Cali", 0),
-                "Barranquilla": row.get("Barranquilla", 0),
-                "Cartagena": row.get("Cartagena", 0),
-                "Producción": row.get("Producción", ""),  # <- evita error si no existe
+                "Medellin": row["Medellin"] if "Medellin" in row.keys() else 0,
+                "Bogota": row["Bogota"] if "Bogota" in row.keys() else 0,
+                "Cali": row["Cali"] if "Cali" in row.keys() else 0,
+                "Barranquilla": row["Barranquilla"] if "Barranquilla" in row.keys() else 0,
+                "Cartagena": row["Cartagena"] if "Cartagena" in row.keys() else 0,
+                "Producción": row["Producción"] if "Producción" in row.keys() else "",
                 "Precio lista": precio_formateado,
                 "Descuento de vendedor": f"{descuento}%"
             })
