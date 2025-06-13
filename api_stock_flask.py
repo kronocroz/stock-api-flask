@@ -238,63 +238,57 @@ def buscar_otras_tallas():
 
 @app.route('/analisis_inventario', methods=['GET'])
 def analisis_inventario():
-    ref = request.args.get('ref')
-    if not ref:
-        return jsonify({"error": "Parámetro 'ref' es obligatorio"}), 400
+    try:
+        ref = request.args.get('ref')
+        if not ref:
+            return jsonify({"error": "Parámetro 'ref' es obligatorio"}), 400
 
-    conn = sqlite3.connect('stock.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+        conn = sqlite3.connect('stock.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
 
-    query = """
-        SELECT Referencia, Nombre producto, Medellin, Min_Med, Max_Med, Bogota, Min_Bog, Max_Bog, Cali, Min_Cal, Max_Cal, Barranquilla, Min_Baq, Max_Baq, Cartagena, Min_Crt, Max_Crt
-        FROM inventario
-        WHERE CAST(Referencia AS TEXT) = ?
-    """
+        query = """
+            SELECT Referencia, "Nombre producto", Medellin, Min_Med, Max_Med, Bogota, Min_Bog, Max_Bog, Cali, Min_Cal, Max_Cal, Barranquilla, Min_Baq, Max_Baq, Cartagena, Min_Crt, Max_Crt
+            FROM inventario
+            WHERE CAST(Referencia AS TEXT) = ?
+        """
+        cursor.execute(query, (ref,))
+        row = cursor.fetchone()
+        conn.close()
 
-    cursor.execute(query, (ref,))
-    row = cursor.fetchone()
-    conn.close()
+        if not row:
+            return jsonify({"error": "Referencia no encontrada"}), 404
 
-    if not row:
-        return jsonify({"error": "Referencia no encontrada"}), 404
+        referencia = row['Referencia']
+        nombre_producto = row['Nombre producto']
 
-    referencia = row['Referencia']
-    nombre_producto = row['Nombre producto']
+        ciudades = [
+            ("Medellin", "Min_Med", "Max_Med"),
+            ("Bogota", "Min_Bog", "Max_Bog"),
+            ("Cali", "Min_Cal", "Max_Cal"),
+            ("Barranquilla", "Min_Baq", "Max_Baq"),
+            ("Cartagena", "Min_Crt", "Max_Crt")
+        ]
 
-    # Lista de ciudades y sus respectivos campos
-    ciudades = [
-        ("Medellin", "Min_Med", "Max_Med"),
-        ("Bogota", "Min_Bog", "Max_Bog"),
-        ("Cali", "Min_Cal", "Max_Cal"),
-        ("Barranquilla", "Min_Baq", "Max_Baq"),
-        ("Cartagena", "Min_Crt", "Max_Crt")
-    ]
+        resultados = []
+        sugerencias = []
 
-    resultados = []
-    sugerencias = []
+        for ciudad, min_col, max_col in ciudades:
+            valor = row[ciudad] if row[ciidad] is not None else 0
+            min_val = row[min_col] if row[min_col] is not None else 0
+            max_val = row[max_col] if row[max_col] is not None else 0
 
-    for ciudad, min_col, max_col in ciudades:
-        valor = row[ciudad] if row[ciudad] is not None else 0
-        min_val = row[min_col] if row[min_col] is not None else 0
-        max_val = row[max_col] if row[max_col] is not None else 0
-
-        # Determinar el estado del inventario en cada ciudad
-        if valor < min_val:
-            estado = "Recompra"
-        elif min_val <= valor <= max_val:
-            estado = "OK"
-        else:
-            estado = "Sobrestock"
-            diferencia = valor - max_val
-
-            # Buscar ciudades con Recompra
-            for destino, min_dest, max_dest in ciudades:
-                if destino != ciudad:
-                    dest_valor = row[destino] if row[destino] is not None else 0
-                    dest_min = row[min_dest] if row[min_dest] is not None else 0
-
-                    if dest_valor < dest_min:
+            if valor < min_val:
+                estado = "Recompra"
+            elif min_val <= valor <= max_val:
+                estado = "OK"
+            else:
+                estado = "Sobrestock"
+                diferencia = valor - max_val
+                for destino, min_dest, max_dest in ciudades:
+                    if destino != ciudad:
+                        dest_valor = row[destino] if row[destino] is not None else 0
+                        dest_min = row[min_dest] if row[min_dest] is not None else 0
                         capacidad_faltante = dest_min - dest_valor
                         trasladar = min(diferencia, capacidad_faltante)
                         if trasladar > 0:
@@ -304,22 +298,24 @@ def analisis_inventario():
                                 "Cantidad": trasladar
                             })
 
-        resultados.append({
-            "Ciudad": ciudad,
-            "Stock": valor,
-            "Min": min_val,
-            "Max": max_val,
-            "Estado": estado
-        })
+            resultados.append({
+                "Ciudad": ciudad,
+                "Stock": valor,
+                "Min": min_val,
+                "Max": max_val,
+                "Estado": estado
+            })
 
-    resultado_final = {
-        "Referencia": referencia,
-        "Nombre producto": nombre_producto,
-        "Analisis": resultados,
-        "Sugerencias de Traslado": sugerencias
-    }
+        return jsonify({
+            "Referencia": referencia,
+            "Nombre producto": nombre_producto,
+            "Analisis": resultados,
+            "Sugerencias de Traslado": sugerencias
+        }), 200
 
-    return jsonify(resultado_final), 200
+    except Exception as e:
+        print("❌ ERROR EN EL ENDPOINT /analisis_inventario:", str(e))
+        return jsonify({"error": f"Error interno: {str(e)}"}), 500
 
 # 🔁 Esto permite que Render detecte correctamente el puerto
 if __name__ == "__main__":
