@@ -78,93 +78,97 @@ def get_stock():
 
 @app.route('/buscar_nombre', methods=['GET'])
 def buscar_nombre():
-    nombre = request.args.get('nombre')
-    if not nombre:
-        return jsonify({"error": "Parámetro 'nombre' es obligatorio"}), 400
+    try:
+        nombre = request.args.get('nombre')
+        if not nombre:
+            return jsonify({"error": "Parámetro 'nombre' es obligatorio"}), 400
 
-    tipo_busqueda = request.args.get('tipo', 'all')  # 'all' o 'any'
-    operador = " AND " if tipo_busqueda == 'all' else " OR "
+        tipo_busqueda = request.args.get('tipo', 'all')  # puede ser 'all' o 'any'
+        operador = " AND " if tipo_busqueda == 'all' else " OR "
 
-    palabras = nombre.strip().lower().split()
-    ignorar = {"ref", "codigo", "cod", "art"}
-    palabras = [p for p in palabras if p not in ignorar]
+        palabras = nombre.strip().lower().split()
+        ignorar = {"ref", "codigo", "cod", "art"}
+        palabras = [p for p in palabras if p not in ignorar]
 
-    if not palabras:
-        return jsonify({"error": "No se ingresaron palabras relevantes"}), 400
+        if not palabras:
+            return jsonify({"error": "No se ingresaron palabras relevantes"}), 400
 
-    condiciones_nombre = [
-        "REPLACE(REPLACE(LOWER(Nombre producto), '-', ''), '/', '') LIKE ?"
-        for _ in palabras
-    ]
-    condiciones_referencia = [
-        "REPLACE(REPLACE(LOWER(Referencia), '-', ''), '/', '') LIKE ?"
-        for _ in palabras
-    ]
+        condiciones_nombre = [
+            'REPLACE(REPLACE(LOWER("Nombre producto"), "-", ""), "/", "") LIKE ?'
+            for _ in palabras
+        ]
+        condiciones_referencia = [
+            'REPLACE(REPLACE(LOWER(Referencia), "-", ""), "/", "") LIKE ?'
+            for _ in palabras
+        ]
 
-    condicion_final = f"({operador.join(condiciones_nombre)}) OR ({operador.join(condiciones_referencia)})"
-    parametros = [f"%{p.replace('-', '').replace('/', '')}%" for p in palabras] * 2
+        condicion_final = f"({operador.join(condiciones_nombre)}) OR ({operador.join(condiciones_referencia)})"
+        parametros = [f"%{p.replace('-', '').replace('/', '')}%" for p in palabras] * 2
 
-    param_orden = nombre.lower()
-    parametros_orden = [param_orden, f"%{param_orden}%", f"%{param_orden}%"]
+        param_orden = nombre.lower()
+        parametros_orden = [param_orden, f"%{param_orden}%", f"%{param_orden}%"]
 
-    conn = sqlite3.connect('stock.db')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+        conn = sqlite3.connect('stock.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
 
-    query = f"""
-        SELECT *, 
-            CASE
-                WHEN LOWER(Referencia) = ? THEN 1
-                WHEN LOWER(Referencia) LIKE ? THEN 2
-                WHEN LOWER(Nombre producto) LIKE ? THEN 3
-                ELSE 4
-            END AS prioridad
-        FROM inventario 
-        WHERE {condicion_final}
-        ORDER BY prioridad ASC
-        LIMIT 20
-    """
-    cursor.execute(query, parametros_orden + parametros)
-    filas = cursor.fetchall()
-    conn.close()
+        query = f"""
+            SELECT *, 
+                CASE
+                    WHEN LOWER(Referencia) = ? THEN 1
+                    WHEN LOWER(Referencia) LIKE ? THEN 2
+                    WHEN LOWER("Nombre producto") LIKE ? THEN 3
+                    ELSE 4
+                END AS prioridad
+            FROM inventario 
+            WHERE {condicion_final}
+            ORDER BY prioridad ASC
+            LIMIT 20
+        """
+        cursor.execute(query, parametros_orden + parametros)
+        filas = cursor.fetchall()
+        conn.close()
 
-    resultados = []
-    for row in filas:
-        referencia = str(row["Referencia"]).strip()
-        nombre_producto = row["Nombre producto"]
-        precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
-        descuento = round(float(row["Desc"] or 0) * 100)
-        precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
-        
-        resultado_texto = (
-            f"{referencia} - {nombre_producto}\n\n"
-            f"Saldos:\n\n"
-            f"Medellín {row['Medellin']},\n"
-            f"Bogotá {row['Bogota']},\n"
-            f"Cali {row['Cali']},\n"
-            f"Barranquilla {row['Barranquilla']},\n"
-            f"Cartagena {row['Cartagena']}.\n\n"
-            f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
-        )
+        resultados = []
+        for row in filas:
+            referencia = str(row["Referencia"]).strip()
+            nombre_producto = row["Nombre producto"]
+            precio_lista = row["Precio lista"] if row["Precio lista"] is not None else 0
+            descuento = round(float(row["Desc"] or 0) * 100)
+            precio_formateado = f"${int(precio_lista):,}".replace(",", ".")
 
-        resultados.append({
-            "Resultado": resultado_texto,
-            "Referencia": referencia,
-            "Nombre producto": nombre_producto,
-            "Medellin": row["Medellin"],
-            "Bogota": row["Bogota"],
-            "Cali": row["Cali"],
-            "Barranquilla": row["Barranquilla"],
-            "Cartagena": row["Cartagena"],
-            "Producción": row["Producción"],
-            "Precio lista": precio_formateado,
-            "Descuento de vendedor": f"{descuento}%"
-        })
+            resultado_texto = (
+                f"{referencia} - {nombre_producto}\n\n"
+                f"Saldos:\n\n"
+                f"Medellín {row.get('Medellin', 0)},\n"
+                f"Bogotá {row.get('Bogota', 0)},\n"
+                f"Cali {row.get('Cali', 0)},\n"
+                f"Barranquilla {row.get('Barranquilla', 0)},\n"
+                f"Cartagena {row.get('Cartagena', 0)}.\n\n"
+                f"Datos del precio: El precio de lista es de {precio_formateado} y tiene un descuento de vendedor del {descuento}%."
+            )
 
-    if resultados:
-        return jsonify(resultados)
-    else:
-        return jsonify({"mensaje": "No se encontraron coincidencias"}), 404
+            resultados.append({
+                "Resultado": resultado_texto,
+                "Referencia": referencia,
+                "Nombre producto": nombre_producto,
+                "Medellin": row.get("Medellin", 0),
+                "Bogota": row.get("Bogota", 0),
+                "Cali": row.get("Cali", 0),
+                "Barranquilla": row.get("Barranquilla", 0),
+                "Cartagena": row.get("Cartagena", 0),
+                "Producción": row.get("Producción", ""),  # <- evita error si no existe
+                "Precio lista": precio_formateado,
+                "Descuento de vendedor": f"{descuento}%"
+            })
+
+        if resultados:
+            return jsonify(resultados)
+        else:
+            return jsonify({"mensaje": "No se encontraron coincidencias"}), 404
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/tallas', methods=['GET'])
 def buscar_otras_tallas():
